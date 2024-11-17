@@ -1,8 +1,10 @@
 import { Request, Response } from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+
 import User from "../models/user.model";
 import { IUserCreate, IUserLogin, IUserResponse } from "../types/user.types";
+import { sendVerificationMail } from "../config/email";
 
 export const register = async (req: Request<{}, {}, IUserCreate>, res: Response): Promise<void> => {
    try {
@@ -16,7 +18,7 @@ export const register = async (req: Request<{}, {}, IUserCreate>, res: Response)
 
       const hashedPassword = await bcrypt.hash(password, 10);
 
-      const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+      const verificationCode = await sendVerificationMail(email);
 
       const newUser = await User.create({
          name,
