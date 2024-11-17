@@ -3,6 +3,8 @@ import dotenv from "dotenv";
 import connectDB from "./config/database";
 import userRoutes from "./routes/user.routes";
 import cors from "cors";
+import verifyRoutes from "./routes/verify.routes";
+import cookieParser from "cookie-parser";
 
 dotenv.config();
 
@@ -13,7 +15,15 @@ connectDB();
 
 // middleware
 app.use(express.json());
-app.use(cors({ origin: "http://localhost:3000", credentials: true }));
+app.use(
+   cors({
+      origin: "http://localhost:3000",
+      credentials: true,
+      methods: ["GET", "POST", "PUT", "DELETE"],
+      allowedHeaders: ["Content-Type"],
+   })
+);
+app.use(cookieParser());
 
 // test route
 app.get("/", (req, res) => {
@@ -22,6 +32,7 @@ app.get("/", (req, res) => {
 
 // routes
 app.use("/api/users", userRoutes);
+app.use("/api/verify", verifyRoutes);
 
 const PORT = process.env.PORT || 5000;
 
