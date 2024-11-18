@@ -5,6 +5,8 @@ export interface IUser {
    surname: string;
    email: string;
    password: string;
+   profileImage: string | null;
+   authProvider: "local" | "google";
    createdAt: Date;
    updatedAt: Date;
    status: boolean;

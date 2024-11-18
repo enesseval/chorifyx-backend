@@ -21,7 +21,18 @@ const userSchema = new Schema<IUserDocument>({
    },
    password: {
       type: String,
-      required: true,
+      required: function (this: IUserDocument) {
+         return this.authProvider === "local";
+      },
+   },
+   profileImage: {
+      type: String,
+      default: null,
+   },
+   authProvider: {
+      type: String,
+      enum: ["local", "google"],
+      default: "local",
    },
    createdAt: {
       type: Date,
@@ -33,7 +44,9 @@ const userSchema = new Schema<IUserDocument>({
    },
    status: {
       type: Boolean,
-      default: false,
+      default: function (this: IUserDocument) {
+         return this.authProvider === "google";
+      },
    },
    verificationCode: {
       type: String,
