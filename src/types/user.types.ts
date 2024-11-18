@@ -1,5 +1,3 @@
-import { Types } from "mongoose";
-
 export interface IUser {
    name: string;
    surname: string;
@@ -9,6 +7,7 @@ export interface IUser {
    authProvider: "local" | "google";
    createdAt: Date;
    updatedAt: Date;
+   lastLogin: Date;
    status: boolean;
    verificationCode?: string;
    verificationExpiry?: Date;

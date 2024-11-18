@@ -42,6 +42,10 @@ const userSchema = new Schema<IUserDocument>({
       type: Date,
       default: Date.now,
    },
+   lastLogin: {
+      type: Date,
+      default: Date.now,
+   },
    status: {
       type: Boolean,
       default: function (this: IUserDocument) {

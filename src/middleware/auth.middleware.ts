@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
+import User from "../models/user.model";
 
 declare global {
    namespace Express {
@@ -15,10 +16,21 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
    try {
       const token = req.cookies["access-token"];
 
+      console.log("token", token);
+      console.log("req", req.params);
+
       if (!token) {
+         if (req.params.id) {
+            const user = await User.findById(req.params.id);
+            if (user && !user.status) {
+               req.user = { userId: user._id.toString() };
+               next();
+               return;
+            }
+         }
          res.status(401).json({
             success: false,
-            message: "Yetkisiz erişim",
+            message: "Yetkisiz erirşim",
          });
          return;
       }

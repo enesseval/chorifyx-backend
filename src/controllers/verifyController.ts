@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import User from "../models/user.model";
 import { createTokenAndSetCookies } from "../utils/auth.utils";
-import { access } from "fs";
+import { sendVerificationMail } from "../config/email";
 
 export const verifyCode = async (req: Request, res: Response): Promise<void> => {
    try {
@@ -71,4 +71,39 @@ export const verifyCode = async (req: Request, res: Response): Promise<void> => 
          error: error instanceof Error ? error.message : "Bilinmeyen hata",
       });
    }
+};
+
+export const resendVerifyCode = async (req: Request, res: Response): Promise<void> => {
+   const { id } = req.body;
+
+   const user = await User.findById(id);
+
+   if (!user) {
+      res.status(404).json({
+         success: false,
+         message: "Kullanıcı bulunamadı.",
+      });
+      return;
+   }
+
+   if (user.verifyCodeLimit === 0) {
+      res.status(400).json({
+         success: false,
+         message: "Doğrulama kodu gönderim limiti doldu. Lütfen bizimle iletişime geçin.",
+      });
+      return;
+   }
+
+   const verificationCode = await sendVerificationMail(user.email);
+
+   user.verificationCode = verificationCode.toString();
+   user.verificationExpiry = new Date(Date.now() + 15 * 60 * 1000);
+   user.verifyCodeLimit = user.verifyCodeLimit - 1;
+
+   await user.save();
+
+   res.status(201).json({
+      success: true,
+      message: "Doğrulama kodu gönderildi.",
+   });
 };

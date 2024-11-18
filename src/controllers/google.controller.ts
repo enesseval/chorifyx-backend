@@ -25,6 +25,10 @@ export const googleAuthCallback = async (req: Request, res: Response): Promise<v
    try {
       const { code } = req.query;
 
+      if (!code) {
+         throw new Error("Auth code is missing");
+      }
+
       const tokenResponse = await axios.post("https://oauth2.googleapis.com/token", {
          code,
          client_id: process.env.GOOGLE_CLIENT_ID,
@@ -39,7 +43,16 @@ export const googleAuthCallback = async (req: Request, res: Response): Promise<v
          },
       });
 
+      if (!userInfo.data.email || !userInfo.data.verified_email) {
+         throw new Error("Google account email is not verified");
+      }
+
       let user = await User.findOne({ email: userInfo.data.email });
+
+      if (user && user.authProvider === "local") {
+         // Eğer kullanıcı daha önce normal kayıt olduysa
+         return res.redirect(`${process.env.CLIENT_URL}/error?code=EMAIL_IN_USE&message=${encodeURIComponent("Bu email adresi zaten klasik yöntemle kayıtlı. Lütfen şifrenizle giriş yapın.")}`);
+      }
 
       if (!user) {
          user = await User.create({
@@ -50,14 +63,32 @@ export const googleAuthCallback = async (req: Request, res: Response): Promise<v
             authProvider: "google",
             status: true,
          });
+      } else {
+         // Mevcut kullanıcının son giriş zamanını güncelle
+         user.lastLogin = new Date();
+         await user.save();
       }
 
       await createTokenAndSetCookies(user, res);
 
       res.redirect(`${process.env.CLIENT_URL}/user/${user._id}`);
    } catch (error) {
-      const errorCode = "AUTH_CALLBACK_FAILED";
-      const errorMessage = "Google giriş işlemi tamamlanamadı";
-      res.redirect(`${process.env.FRONTEND_URL}/auth/error?code=${errorCode}&message=${encodeURIComponent(errorMessage)}`);
+      let errorCode = "AUTH_CALLBACK_FAILED";
+      let errorMessage = "Google giriş işlemi tamamlanamadı";
+      if (error instanceof Error) {
+         switch (error.message) {
+            case "Auth code is missing":
+               errorCode = "MISSING_CODE";
+               errorMessage = "Doğrulama kodu eksik";
+               break;
+            case "Google account email is not verified":
+               errorCode = "EMAIL_NOT_VERIFIED";
+               errorMessage = "Google hesabınızın email adresi doğrulanmamış";
+               break;
+            // ... diğer özel hata durumları
+         }
+      }
+
+      res.redirect(`${process.env.CLIENT_URL}/error?code=${errorCode}&message=${encodeURIComponent(errorMessage)}`);
    }
 };
